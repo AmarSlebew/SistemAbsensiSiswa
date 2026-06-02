@@ -1,58 +1,155 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# DisiplinKu - Sistem Absensi & Klasifikasi Kedisiplinan Siswa SMAN 1 PLUTO
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**DisiplinKu** adalah platform digital manajemen kehadiran sekolah berbasis web yang dirancang khusus untuk **SMAN 1 PLUTO**. Sistem ini memadukan kemudahan pencatatan absensi secara real-time dengan modul kecerdasan buatan (*Machine Learning*) untuk melakukan klasifikasi kedisiplinan siswa secara otomatis menggunakan algoritma **Decision Tree Classifier**.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🚀 Fitur Utama
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+1. **Official School Landing Page**:
+   - Tampilan profil SMAN 1 PLUTO yang modern, elegan, dan profesional.
+   - Menggunakan kerangka kerja Tailwind CSS yang responsif.
+   - Animasi transisi halaman saat digulir menggunakan library **AOS (Animate on Scroll)**.
+   
+2. **Portal Absensi Guru (Dashboard)**:
+   - Manajemen presensi siswa secara harian dan per-kelas.
+   - Visualisasi tren kehadiran kelas yang interaktif.
+   - Daftar kelas yang ringkas dilengkapi dengan sistem scrollbar vertikal untuk kestabilan layout.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+3. **Klasifikasi Kedisiplinan Berbasis AI (Machine Learning)**:
+   - Integrasi langsung dengan API Flask Python untuk menganalisis data kehadiran secara berkala.
+   - Menggunakan algoritma **Decision Tree Classifier** untuk memetakan kepatuhan siswa ke dalam 4 kategori disiplin:
+     - `Sangat Disiplin`
+     - `Disiplin`
+     - `Kurang Disiplin`
+     - `Bermasalah`
+   - Fitur inisialisasi model cepat berbasis *Singleton Pattern* untuk efisiensi RAM dan CPU pada sisi server Flask.
 
-## Learning Laravel
+4. **Filament Admin Panel**:
+   - Panel manajemen data master siswa, guru, kelas, dan absensi yang aman dan siap pakai untuk Administrator.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🛠️ Arsitektur & Alur AI Klasifikasi
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```mermaid
+graph TD
+    A[Laravel App - Guru] -->|Kirim Riwayat Absensi via HTTP POST| B(Flask API - Port 5000)
+    B --> C{Normalisasi Status Absensi}
+    C -->|Hitung Fitur| D[1. Persentase Kehadiran]
+    C -->|Hitung Fitur| E[2. Total Alpha]
+    C -->|Hitung Fitur| F[3. Alpha Berturut-turut Terpanjang]
+    D & E & F --> G[Decision Tree Classifier Model]
+    G --> H[Prediksi Label & Nilai Confidence %]
+    H -->|Return JSON Response| A
+    A -->|Tampilkan Hasil Klasifikasi| I[UI Hasil Klasifikasi Guru]
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+## 💻 Spesifikasi Teknologi
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- **Backend Utama**: Laravel 13 (PHP ^8.3), Filament v5 (Panel Admin)
+- **Frontend & UI**: Tailwind CSS, Alpine.js, AOS Library
+- **Database**: MySQL / MariaDB
+- **Machine Learning Service**: Python 3.x, Flask, Scikit-Learn, NumPy
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## ⚙️ Cara Instalasi & Konfigurasi
 
-## Security Vulnerabilities
+### 1. Prasyarat Sistem
+Pastikan perangkat Anda telah terpasang:
+- PHP >= 8.3
+- Composer
+- Node.js & NPM
+- Python 3.8+ & pip
+- MySQL Server
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 2. Setup Proyek Laravel
+1. Clone repository ini dan masuk ke direktori proyek.
+2. Pasang dependensi PHP Composer:
+   ```bash
+   composer install
+   ```
+3. Salin file konfigurasi `.env`:
+   ```bash
+   copy .env.example .env
+   ```
+4. Buat kunci enkripsi aplikasi:
+   ```bash
+   php artisan key:generate
+   ```
+5. Sesuaikan konfigurasi database Anda di dalam berkas `.env`:
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=nama_database_anda
+   DB_USERNAME=root
+   DB_PASSWORD=
+   ```
+6. Jalankan migrasi database beserta seeder data dummy:
+   ```bash
+   php artisan migrate --seed
+   ```
 
-## License
+### 3. Setup Aset Frontend (CSS, JS, & AOS)
+1. Pasang paket NPM (termasuk library AOS untuk animasi):
+   ```bash
+   npm install
+   ```
+2. Jalankan server kompilasi aset Vite:
+   ```bash
+   npm run dev
+   ```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 4. Setup Layanan Machine Learning (Python Flask)
+1. Masuk ke folder microservice Python:
+   ```bash
+   cd python-ml
+   ```
+2. Buat lingkungan virtual (*Virtual Environment*) dan aktifkan:
+   - **Windows**:
+     ```bash
+     python -m venv venv
+     venv\Scripts\activate
+     ```
+   - **Linux / MacOS**:
+     ```bash
+     python -m venv venv
+     source venv/bin/activate
+     ```
+3. Pasang paket python yang dibutuhkan:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Latih model Decision Tree untuk pertama kali:
+   ```bash
+   python model.py
+   ```
+
+---
+
+## 🚦 Langkah Menjalankan Aplikasi
+
+Pastikan kedua server (Laravel & Flask) berjalan secara bersamaan agar modul AI berfungsi dengan baik.
+
+### Langkah A - Menjalankan Aplikasi Utama (Laravel)
+Jalankan perintah ini di root direktori proyek:
+```bash
+php artisan serve
+```
+*Aplikasi web dapat diakses melalui browser di alamat [http://127.0.0.1:8000](http://127.0.0.1:8000).*
+
+### Langkah B - Menjalankan Layanan AI (Python Flask)
+Aktifkan virtual environment di folder `python-ml`, kemudian jalankan:
+```bash
+python app.py
+```
+*Layanan Flask API akan aktif di alamat [http://127.0.0.1:5000](http://127.0.0.1:5000).*
+
+---
+
+## 🔒 Lisensi
+Proyek Sistem Absensi DisiplinKu ini dilisensikan di bawah lisensi **MIT**.
