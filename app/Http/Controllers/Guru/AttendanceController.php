@@ -11,6 +11,7 @@ use App\Models\Subject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AttendanceController extends Controller
 {
@@ -207,5 +208,29 @@ class AttendanceController extends Controller
 
         return redirect()->route('absensi.show', $attendance->id)
             ->with('success', 'Absensi berhasil diperbarui.');
+    }
+
+    /**
+     * Ekspor detail sesi absensi ke PDF.
+     */
+    public function exportPdf(Attendance $attendance)
+    {
+        $teacher = $this->getTeacher();
+        abort_if($attendance->teacher_id !== $teacher->id, 403);
+
+        $attendance->load(['classroom', 'subject', 'details.student', 'teacher.user']);
+
+        $summary = [
+            'hadir' => $attendance->details->where('status', 'Hadir')->count(),
+            'izin'  => $attendance->details->where('status', 'Izin')->count(),
+            'sakit' => $attendance->details->where('status', 'Sakit')->count(),
+            'alpa'  => $attendance->details->where('status', 'Alpa')->count(),
+            'total' => $attendance->details->count(),
+        ];
+
+        $pdf = Pdf::loadView('guru.absensi.pdf', compact('attendance', 'summary'));
+        
+        $filename = 'Absensi_' . str_replace(' ', '_', $attendance->classroom->name) . '_' . $attendance->date . '.pdf';
+        return $pdf->download($filename);
     }
 }

@@ -22,10 +22,12 @@ Route::middleware(['auth', 'guru'])->group(function () {
         Route::get('/{attendance}',    [AttendanceController::class, 'show'])->name('show');
         Route::get('/{attendance}/edit', [AttendanceController::class, 'edit'])->name('edit');
         Route::put('/{attendance}',    [AttendanceController::class, 'update'])->name('update');
+        Route::get('/{attendance}/pdf', [AttendanceController::class, 'exportPdf'])->name('pdf');
     });
 
     // Rekap Absensi
     Route::get('/rekap', [\App\Http\Controllers\Guru\RecapController::class, 'index'])->name('rekap.index');
+    Route::get('/rekap/pdf', [\App\Http\Controllers\Guru\RecapController::class, 'exportPdf'])->name('rekap.pdf');
 
     // Hasil Klasifikasi ML
     Route::get('/klasifikasi', [\App\Http\Controllers\Guru\ClassificationController::class, 'index'])->name('klasifikasi.index');

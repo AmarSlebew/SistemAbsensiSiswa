@@ -10,6 +10,7 @@ use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class RecapController extends Controller
 {
@@ -43,65 +44,7 @@ class RecapController extends Controller
         $startDate         = $request->input('start_date');
         $endDate           = $request->input('end_date');
 
-        $recapData = collect();
-
-        // 3. Jika kelas dipilih, hitung rekap per siswa
-        if ($selectedClassroom) {
-            $students = Student::where('classroom_id', $selectedClassroom)
-                ->orderBy('name')
-                ->get();
-
-            // Bangun query dasar pencarian absensi
-            $attendanceQuery = Attendance::where('classroom_id', $selectedClassroom);
-
-            // Filter guru yang mengajar
-            $attendanceQuery->where('teacher_id', $teacher->id);
-
-            if ($selectedSubject) {
-                $attendanceQuery->where('subject_id', $selectedSubject);
-            }
-
-            if ($startDate) {
-                $attendanceQuery->where('date', '>=', $startDate);
-            }
-
-            if ($endDate) {
-                $attendanceQuery->where('date', '<=', $endDate);
-            }
-
-            // Dapatkan semua ID absensi yang memenuhi kriteria filter
-            $attendanceIds = $attendanceQuery->pluck('id');
-
-            // Hitung statistik per siswa
-            foreach ($students as $student) {
-                // Query detil absensi untuk siswa ini dalam sesi absensi yang difilter
-                $stats = DB::table('attendance_details')
-                    ->select('status', DB::raw('count(*) as count'))
-                    ->whereIn('attendance_id', $attendanceIds)
-                    ->where('student_id', $student->id)
-                    ->groupBy('status')
-                    ->pluck('count', 'status')
-                    ->toArray();
-
-                $hadir = $stats['Hadir'] ?? 0;
-                $izin  = $stats['Izin'] ?? 0;
-                $sakit = $stats['Sakit'] ?? 0;
-                $alpa  = $stats['Alpa'] ?? 0;
-                $total = $hadir + $izin + $sakit + $alpa;
-
-                $percentage = $total > 0 ? round(($hadir / $total) * 100, 1) : 0;
-
-                $recapData->push((object)[
-                    'student'    => $student,
-                    'hadir'      => $hadir,
-                    'izin'       => $izin,
-                    'sakit'      => $sakit,
-                    'alpa'       => $alpa,
-                    'total'      => $total,
-                    'percentage' => $percentage
-                ]);
-            }
-        }
+        $recapData = $this->computeRecap($selectedClassroom, $selectedSubject, $startDate, $endDate);
 
         return view('guru.rekap.index', compact(
             'classrooms',
@@ -112,5 +55,105 @@ class RecapController extends Controller
             'startDate',
             'endDate'
         ));
+    }
+
+    /**
+     * Helper to compute attendance recap data for a classroom with filters.
+     */
+    private function computeRecap($selectedClassroom, $selectedSubject = null, $startDate = null, $endDate = null)
+    {
+        $teacher = $this->getTeacher();
+        $recapData = collect();
+
+        if (!$selectedClassroom) {
+            return $recapData;
+        }
+
+        $students = Student::where('classroom_id', $selectedClassroom)
+            ->orderBy('name')
+            ->get();
+
+        // Bangun query dasar pencarian absensi
+        $attendanceQuery = Attendance::where('classroom_id', $selectedClassroom)
+            ->where('teacher_id', $teacher->id);
+
+        if ($selectedSubject) {
+            $attendanceQuery->where('subject_id', $selectedSubject);
+        }
+
+        if ($startDate) {
+            $attendanceQuery->where('date', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $attendanceQuery->where('date', '<=', $endDate);
+        }
+
+        // Dapatkan semua ID absensi yang memenuhi kriteria filter
+        $attendanceIds = $attendanceQuery->pluck('id');
+
+        // Hitung statistik per siswa
+        foreach ($students as $student) {
+            $stats = DB::table('attendance_details')
+                ->select('status', DB::raw('count(*) as count'))
+                ->whereIn('attendance_id', $attendanceIds)
+                ->where('student_id', $student->id)
+                ->groupBy('status')
+                ->pluck('count', 'status')
+                ->toArray();
+
+            $hadir = $stats['Hadir'] ?? 0;
+            $izin  = $stats['Izin'] ?? 0;
+            $sakit = $stats['Sakit'] ?? 0;
+            $alpa  = $stats['Alpa'] ?? 0;
+            $total = $hadir + $izin + $sakit + $alpa;
+
+            $percentage = $total > 0 ? round(($hadir / $total) * 100, 1) : 0;
+
+            $recapData->push((object)[
+                'student'    => $student,
+                'hadir'      => $hadir,
+                'izin'       => $izin,
+                'sakit'      => $sakit,
+                'alpa'       => $alpa,
+                'total'      => $total,
+                'percentage' => $percentage
+            ]);
+        }
+
+        return $recapData;
+    }
+
+    /**
+     * Ekspor rekap absensi kelas ke PDF.
+     */
+    public function exportPdf(Request $request)
+    {
+        $teacher = $this->getTeacher()->load('user');
+        $selectedClassroom = $request->input('classroom_id');
+        
+        abort_if(!$selectedClassroom, 400, 'Kelas harus dipilih.');
+
+        $classroom = Classroom::findOrFail($selectedClassroom);
+        
+        $selectedSubject = $request->input('subject_id');
+        $subject = $selectedSubject ? Subject::find($selectedSubject) : null;
+        
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        $recapData = $this->computeRecap($selectedClassroom, $selectedSubject, $startDate, $endDate);
+
+        $pdf = Pdf::loadView('guru.rekap.pdf', compact(
+            'classroom',
+            'subject',
+            'recapData',
+            'startDate',
+            'endDate',
+            'teacher'
+        ));
+
+        $filename = 'Rekap_Absensi_' . str_replace(' ', '_', $classroom->name) . '.pdf';
+        return $pdf->download($filename);
     }
 }
